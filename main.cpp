@@ -38,12 +38,15 @@ void printDisk() {
 }
 
 int allocate_first_free() {
-    int alloc = free_frames.front();
-    free_frames.pop_front();
+    int alloc = -1;
+    if (free_frames.size() > 0) {
+        alloc = free_frames.front();
+        free_frames.pop_front();
+    }
     return alloc;
 }
 
-void allocate(int frame) {
+void allocate_frame(int frame) {
     for (auto it = free_frames.begin(); it != free_frames.end(); it++) {
         if (*it == frame) {
             free_frames.erase(it);
@@ -146,37 +149,32 @@ void init_segments() {
     getline(init_fs, segmentLine);
     cout << segmentLine << endl;
 
-    int start = 0;
-    while (start < segmentLine.size()) {
-        vector<int> segment_data = split_three(segmentLine, ' ', start);
-        PM[segment_data[0] * 2] = segment_data[1];
-        PM[segment_data[0] * 2 + 1] = segment_data[2];
-        if (segment_data[2] > 0) {
-            allocate(segment_data[2]);
+    vector<int> segment_data = split(segmentLine, ' ');
+
+    for (int i = 0; i < segment_data.size() / 3; i++) {
+        int index = i * 3;
+
+        PM[segment_data[index] * 2] =  segment_data[index + 1];
+        PM[segment_data[index] * 2 + 1] = segment_data[index + 2];
+        if (segment_data[index + 2] > 0) {
+            allocate_frame(segment_data[2]);
         }
-        start = segment_data[3];
     }
-    
 
     string pageLine;
     getline(init_fs, pageLine);
     cout << pageLine << endl;
 
-    start = 0;
-    while (start < pageLine.size()) {
-        vector<int> page_data = split_three(pageLine, ' ', start);
-        // cout << "Segment: " << page_data[0] << endl;
-        // cout << "Page num: " << page_data[1] << endl;
-        // cout << "Frame num: " << page_data[2] << endl;
-        if (PM[page_data[0] * 2 + 1] > 0) {
-            //cout << "Entered" << endl;
-            PM[PM[page_data[0] * 2 + 1] * 512 + page_data[1]] = page_data[2];
+    vector<int> page_data = split(pageLine, ' ');
+    for (int i = 0; i < page_data.size() / 3; i++) {
+        int index = i * 3;
+        if (PM[page_data[index] * 2 + 1] > 0) {
+            PM[PM[page_data[index] * 2 + 1] * 512 + page_data[index + 1]] = page_data[index + 2];
             
-            allocate(page_data[2]);
-        } else { //add to disk
-            D[abs(PM[page_data[0] * 2 + 1])][page_data[1]] = page_data[2];
+            allocate_frame(page_data[index + 2]);
+        } else {
+            D[abs(PM[page_data[index] * 2 + 1])][page_data[index + 1]] = page_data[index + 2];
         }
-        start = page_data[3];
     }
 
     init_fs.close();    
@@ -220,11 +218,19 @@ void translate_va() {
             output << "-1 ";
         } else {
             if (PM[2 * s + 1] < 0) { //page in disk
-
+                int alloc_frame = allocate_first_free();
+                read_block(abs(PM[2 * s + 1]), alloc_frame * 512);
+                PM[2 * s + 1] = alloc_frame;
             } else if (PM[PM[2 * s + 1] * 512 + p] < 0) { //page in other part of disk
-
+                int alloc_frame = allocate_first_free();
+                int block = abs(PM[PM[2 * s + 1] * 512 + p]);
+                read_block(block, alloc_frame * 512);
+                PM[PM[2 * s + 1] * 512 + p] = alloc_frame;
             }
-            //cout << PM[PM[2* s + 1] * 512 + p] * 512 + w << endl;;
+            cout << "S: " << s << endl;
+            cout << "W: " << w << endl;
+            cout << "P: " << p << endl;
+            cout << "PW: " << pw << endl;
             output << PM[PM[2* s + 1] * 512 + p] * 512 + w << " ";
         }
 

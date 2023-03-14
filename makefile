@@ -5,7 +5,7 @@ OBJ = main.o
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c -o $@ $<
 	
-main.exe: $(OBJ)
+main: $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ 
 
 run: main
