@@ -77,7 +77,9 @@ void init() {
 }
 
 void read_block(int b, int m) {
-    memcpy(&D[b], &PM[m], PM_SIZE * 4);
+    for (int i = 0; i < PAGE_SIZE; i++) {
+        PM[m + i] = D[b][i];
+    }
 }
 
 vector<int> split_three(string s, char delim, int start) {
@@ -147,7 +149,7 @@ void init_segments() {
 
     string segmentLine;
     getline(init_fs, segmentLine);
-    cout << segmentLine << endl;
+    //cout << segmentLine << endl;
 
     vector<int> segment_data = split(segmentLine, ' ');
 
@@ -163,7 +165,7 @@ void init_segments() {
 
     string pageLine;
     getline(init_fs, pageLine);
-    cout << pageLine << endl;
+    //cout << pageLine << endl;
 
     vector<int> page_data = split(pageLine, ' ');
     for (int i = 0; i < page_data.size() / 3; i++) {
@@ -207,7 +209,7 @@ void translate_va() {
     vector<int> addresses = split(address_line, ' ');
 
     for (int i = 0; i < addresses.size(); i++) {
-        cout << "Address: " << addresses[i] << endl;
+        //cout << "Address: " << addresses[i] << endl;
         int s = addresses[i] >> 18;
         int w = addresses[i] & 0x1ff;
         int p = addresses[i] >> 9 & 0x1ff;
@@ -227,10 +229,10 @@ void translate_va() {
                 read_block(block, alloc_frame * 512);
                 PM[PM[2 * s + 1] * 512 + p] = alloc_frame;
             }
-            cout << "S: " << s << endl;
-            cout << "W: " << w << endl;
-            cout << "P: " << p << endl;
-            cout << "PW: " << pw << endl;
+            // cout << "S: " << s << endl;
+            // cout << "W: " << w << endl;
+            // cout << "P: " << p << endl;
+            // cout << "PW: " << pw << endl;
             output << PM[PM[2* s + 1] * 512 + p] * 512 + w << " ";
         }
 
@@ -243,8 +245,8 @@ int main() {
     init();
     //open init file
     init_segments();
-    printPM();
-    printDisk();
+    //printPM();
+    //printDisk();
     translate_va();
     return 0;
 }
