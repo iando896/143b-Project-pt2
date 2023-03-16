@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "iostream": "cpp",
+        "ostream": "cpp"
+    },
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/ian/143b-Project-pt2",
+            "binaryPath": "/home/ian/143b-Project-pt2/main",
+            "binaryArgs": []
+        }
+    ]
+}

@@ -37,6 +37,22 @@ void printDisk() {
     }
 }
 
+void printFrames() {
+    cout << "-----Printing Frames-----" << endl;
+    int i = 1;
+    cout << "{";
+    for (auto it = free_frames.begin(); it != free_frames.end(); it++) {
+        cout << *it;
+        if(it + 1 != free_frames.end())
+            cout << ", ";
+        if (i % 20 == 0) {
+            cout << endl;
+        }
+        i++;
+    }
+    cout << "}" << endl;
+}
+
 int allocate_first_free() {
     int alloc = -1;
     if (free_frames.size() > 0) {
@@ -53,6 +69,7 @@ void allocate_frame(int frame) {
             return;
         }
     }
+    cout << "Couldn't find frame" << endl;
 }
 
 void init() {
@@ -80,32 +97,6 @@ void read_block(int b, int m) {
     for (int i = 0; i < PAGE_SIZE; i++) {
         PM[m + i] = D[b][i];
     }
-}
-
-vector<int> split_three(string s, char delim, int start) {
-    int start_index = start;
-    int end_index = 0;
-    vector<int> ans;
-    for (int i = 0; i < 3; i++) {
-    //loop through string
-        string num;
-        int j = start_index;
-        for (; j <= s.size(); j++) {
-            //cout << segmentLine.size() << endl;    
-            if (j == s.size() or s[j] == delim) {
-                end_index = j;
-                // cout << "Start: " << start_index << endl;
-                // cout << "End: " << end_index << endl;
-                num = s.substr(start_index, end_index - start_index);
-                start_index = j + 1;
-                break;
-            }
-        }
-        // cout << "Num: " << num << endl;
-        ans.push_back(stoi(num));
-    }
-    ans.push_back(start_index);
-    return ans;
 }
 
 vector<int> split(string s, char delim) {
@@ -159,7 +150,7 @@ void init_segments() {
         PM[segment_data[index] * 2] =  segment_data[index + 1];
         PM[segment_data[index] * 2 + 1] = segment_data[index + 2];
         if (segment_data[index + 2] > 0) {
-            allocate_frame(segment_data[2]);
+            allocate_frame(segment_data[index + 2]);
         }
     }
 
@@ -173,9 +164,12 @@ void init_segments() {
         if (PM[page_data[index] * 2 + 1] > 0) {
             PM[PM[page_data[index] * 2 + 1] * 512 + page_data[index + 1]] = page_data[index + 2];
             
-            allocate_frame(page_data[index + 2]);
+            if (page_data[index + 2] > 0)
+                allocate_frame(page_data[index + 2]);
         } else {
             D[abs(PM[page_data[index] * 2 + 1])][page_data[index + 1]] = page_data[index + 2];
+            if (page_data[index + 2] > 0)
+                allocate_frame(page_data[index + 2]);
         }
     }
 
@@ -209,30 +203,39 @@ void translate_va() {
     vector<int> addresses = split(address_line, ' ');
 
     for (int i = 0; i < addresses.size(); i++) {
-        //cout << "Address: " << addresses[i] << endl;
+        
         int s = addresses[i] >> 18;
         int w = addresses[i] & 0x1ff;
         int p = addresses[i] >> 9 & 0x1ff;
         int pw = addresses[i] & 0x3ffff;
-
+        // cout << "Address: " << addresses[i] << endl;
+        // cout << "S: " << s << endl;
+        // cout << "W: " << w << endl;
+        // cout << "P: " << p << endl;
+        // cout << "PW: " << pw << endl;
         if (pw >= PM[2 * s]) {
             //Error
             output << "-1 ";
         } else {
             if (PM[2 * s + 1] < 0) { //page in disk
                 int alloc_frame = allocate_first_free();
+                if (alloc_frame == -1) {
+                    cout << "Failed to alloc" << endl;
+                    return;
+                }
                 read_block(abs(PM[2 * s + 1]), alloc_frame * 512);
                 PM[2 * s + 1] = alloc_frame;
             } else if (PM[PM[2 * s + 1] * 512 + p] < 0) { //page in other part of disk
                 int alloc_frame = allocate_first_free();
+                if (alloc_frame == -1) {
+                    cout << "Failed to alloc" << endl;
+                    return;
+                }
                 int block = abs(PM[PM[2 * s + 1] * 512 + p]);
                 read_block(block, alloc_frame * 512);
                 PM[PM[2 * s + 1] * 512 + p] = alloc_frame;
             }
-            // cout << "S: " << s << endl;
-            // cout << "W: " << w << endl;
-            // cout << "P: " << p << endl;
-            // cout << "PW: " << pw << endl;
+            
             output << PM[PM[2* s + 1] * 512 + p] * 512 + w << " ";
         }
 
@@ -245,8 +248,12 @@ int main() {
     init();
     //open init file
     init_segments();
+    
     //printPM();
+    // printFrames();
     //printDisk();
     translate_va();
+    //printPM();
+    //printDisk();
     return 0;
 }
